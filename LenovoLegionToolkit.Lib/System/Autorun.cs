@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Security.Principal;
 using LenovoLegionToolkit.Lib.Utils;
@@ -52,13 +53,13 @@ public static class Autorun
         var launchTarget = GetLaunchTarget();
         var taskData = BuildTaskData(fileVersion, launchTarget);
 
-        if (currentTask.Definition.Data == taskData)
+        if (string.Equals(currentTask.Definition.Data, taskData, StringComparison.OrdinalIgnoreCase))
         {
             Log.Instance.Trace($"Autorun settings seems to be fine.");
             return;
         }
 
-        Log.Instance.Trace($"Enabling autorun again...");
+        Log.Instance.Trace($"Autorun settings mismatch. Task Data: '{currentTask.Definition.Data}', Current Data: '{taskData}'. Re-enabling...");
 
         var delayed = currentTask.Definition.Triggers.OfType<LogonTrigger>().FirstOrDefault()?.Delay > TimeSpan.Zero;
 
@@ -89,7 +90,10 @@ public static class Autorun
         td.Principal.UserId = currentUser;
         td.Principal.RunLevel = TaskRunLevel.Highest;
         td.Triggers.Add(new LogonTrigger { UserId = currentUser, Delay = new TimeSpan(0, 0, delayed ? 30 : 0) });
-        td.Actions.Add($"\"{launchTarget}\"", "--minimized");
+        
+        var action = new ExecAction($"\"{launchTarget}\"", "--minimized", Path.GetDirectoryName(launchTarget));
+        td.Actions.Add(action);
+
         td.Settings.DisallowStartIfOnBatteries = false;
         td.Settings.StopIfGoingOnBatteries = false;
         td.Settings.ExecutionTimeLimit = TimeSpan.Zero;
@@ -116,8 +120,7 @@ public static class Autorun
 
     private static string GetLaunchTarget()
     {
-        var mainModule = Process.GetCurrentProcess().MainModule ?? throw new InvalidOperationException("Main Module cannot be null");
-        var filename = mainModule.FileName ?? throw new InvalidOperationException("Current process file name cannot be null");
+        var filename = Environment.ProcessPath ?? throw new InvalidOperationException("Current process path cannot be null");
         return filename;
     }
 }
