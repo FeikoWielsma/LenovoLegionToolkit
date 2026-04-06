@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -89,7 +89,11 @@ internal class SmartKeyHelper
         }
 
         if (currentGuid.Value == Guid.Empty)
+        {
+            Log.Instance.Trace($"Toggling OSD after {(isDoublePress ? "double" : "single")} Fn+F9 press.");
+            MessagingCenter.Publish(new OsdChangedMessage(OsdState.Toggle));
             return;
+        }
 
         if (actionList.IsEmpty())
             actionList.Add(currentGuid.Value);

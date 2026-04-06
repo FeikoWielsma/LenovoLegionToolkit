@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -60,6 +60,7 @@ public partial class SelectSmartKeyPipelinesWindow
         _loader.IsLoading = true;
 
         _showThisAppToggle.IsChecked = SettingsStoreGuid is null;
+        _toggleOsdToggle.IsChecked = SettingsStoreGuid == Guid.Empty;
 
         var allPipelines = await _automationProcessor.GetPipelinesAsync();
         var pipelines = allPipelines.Where(p => p.Trigger is null).OrderBy(p => p.Name).ToArray();
@@ -83,9 +84,19 @@ public partial class SelectSmartKeyPipelinesWindow
         _loader.IsLoading = false;
     }
 
-    private void ShowThisAppToggle_Click(object sender, RoutedEventArgs e) => EnableListIfPossible();
+    private void ShowThisAppToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_showThisAppToggle.IsChecked ?? false) _toggleOsdToggle.IsChecked = false;
+        EnableListIfPossible();
+    }
 
-    private void EnableListIfPossible() => _list.IsEnabled = !(_showThisAppToggle.IsChecked ?? false);
+    private void ToggleOsdToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_toggleOsdToggle.IsChecked ?? false) _showThisAppToggle.IsChecked = false;
+        EnableListIfPossible();
+    }
+
+    private void EnableListIfPossible() => _list.IsEnabled = !(_showThisAppToggle.IsChecked ?? false) && !(_toggleOsdToggle.IsChecked ?? false);
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
     {
@@ -98,6 +109,8 @@ public partial class SelectSmartKeyPipelinesWindow
 
         if (_showThisAppToggle.IsChecked ?? false)
             SettingsStoreGuid = null;
+        else if (_toggleOsdToggle.IsChecked ?? false)
+            SettingsStoreGuid = Guid.Empty;
         else
         {
             SettingsStoreList.AddRange(selectedPipelines);
